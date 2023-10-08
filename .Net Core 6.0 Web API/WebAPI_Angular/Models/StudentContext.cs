@@ -29,9 +29,7 @@ public partial class StudentContext : DbContext
         {
             entity.ToTable("studentProfile");
 
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Age).HasColumnName("age");
             entity.Property(e => e.MiddleName)
                 .HasMaxLength(100)
