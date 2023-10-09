@@ -1,23 +1,109 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using WebAPI_Angular.DTO.StudentDTO;
+using WebAPI_Angular.Models;
 
 
 namespace WebAPI_Angular.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize]
     [ApiController]
     public class StudentController : ControllerBase
     {
 
         private readonly StudentContext _studentContext;
-        public StudentController(StudentContext studentContext)
+        private readonly IConfiguration _configuration;
+        public StudentController(StudentContext studentContext , IConfiguration configuration)
         {
            _studentContext =  studentContext;
+            _configuration = configuration;
 
         }
+
+
+        [AllowAnonymous]
+        [HttpPost("Register")]
+        public async Task<IActionResult> Register(LoginDTO request)
+        {
+            if (request is null)
+            {
+                return BadRequest("Empty");
+            }
+
+
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            var newUser = new Login
+            {
+                UserName = request.UserName,
+                Password = passwordHash
+            };
+
+            _studentContext.Logins.Add(newUser);
+            _studentContext.SaveChanges();
+
+            return Ok(newUser);
+        }
+
+
+
+        [AllowAnonymous]
+        [HttpPost("Login")]
+        public async Task<IActionResult> Login(LoginDTO request)
+        {
+            var findUser = _studentContext.Logins.SingleOrDefault(x => x.UserName == request.UserName);
+
+            if (findUser is null)
+            {
+                return BadRequest("User Not Found");
+            }
+
+            if(!BCrypt.Net.BCrypt.Verify(request.Password , findUser.Password))
+            {
+                return BadRequest("Wrong password or Username");
+            }
+
+            string token = CreateToken(request);
+
+            return Ok(token);
+        }
+
+        //Generate Token
+        private string CreateToken(LoginDTO user)
+        {
+            List<Claim> claims  = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name,user.UserName!)
+            };
+
+
+            var key = new SymmetricSecurityKey(Encoding.UTF32.GetBytes(
+                _configuration.GetSection("JwtSettings:Token").Value!
+                ));
+                
+            var cred = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddDays(1),
+                signingCredentials: cred
+            );
+
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return jwt;
+        }
+
+
 
         [HttpGet("GetStudent")]
         public async Task<IActionResult> GetStudent()

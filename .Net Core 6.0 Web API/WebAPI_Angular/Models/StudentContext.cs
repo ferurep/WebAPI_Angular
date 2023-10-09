@@ -15,6 +15,8 @@ public partial class StudentContext : DbContext
     {
     }
 
+    public virtual DbSet<Login> Logins { get; set; }
+
     public virtual DbSet<StudentProfile> StudentProfiles { get; set; }
 
     public virtual DbSet<Subject> Subjects { get; set; }
@@ -25,6 +27,17 @@ public partial class StudentContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Login>(entity =>
+        {
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Password)
+                .HasMaxLength(100)
+                .HasColumnName("password");
+            entity.Property(e => e.UserName)
+                .HasMaxLength(100)
+                .HasColumnName("userName");
+        });
+
         modelBuilder.Entity<StudentProfile>(entity =>
         {
             entity.ToTable("studentProfile");
@@ -45,13 +58,9 @@ public partial class StudentContext : DbContext
 
         modelBuilder.Entity<Subject>(entity =>
         {
-            entity.ToTable("subjects");
+            entity.ToTable("Subject");
 
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.StudentId).HasColumnName("studentID");
-            entity.Property(e => e.SubjectName)
-                .HasMaxLength(50)
-                .HasColumnName("subjectName");
+            entity.Property(e => e.SubjectName).HasMaxLength(50);
         });
 
         OnModelCreatingPartial(modelBuilder);
