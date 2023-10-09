@@ -96,7 +96,7 @@ namespace WebAPI_Angular.Controllers
                 claims: claims,
                 expires: DateTime.Now.AddDays(1),
                 signingCredentials: cred
-            );
+            );  
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
@@ -130,7 +130,7 @@ namespace WebAPI_Angular.Controllers
                             }
                          }
                      }
-                 )
+                 ).OrderBy(studentDTO => studentDTO.Id)
                  .ToListAsync();
 
             return Ok(studentDTOs);
